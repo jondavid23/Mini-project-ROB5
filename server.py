@@ -61,7 +61,7 @@ class TCPSever(object):
                     data = 0
                 print("Sending back: " + str(data))
                 c.send(data)
-            #c.close()
+        c.close()
 
 
 
