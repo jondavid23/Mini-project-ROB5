@@ -7,13 +7,40 @@ class TCPSever(object):
         self.carrier_group_2 = []
         self.carrier_group_3 = []
         self.first_run = True
+        self.host = '172.20.40.46'#'127.0.0.1'
+        self.port = 5000
+
+    def initCarriers(self):
+        s = socket.socket()
+        s.bind((self.host,self.port))
+
+        s.listen(1)
+        c, addr = s.accept()
+        print "Successfully established connection from: " + str(addr)
+        while (first_run == True):
+            data = c.recv(1024)
+            if not data:
+                print "Failed to receive data from PLC."
+                break
+            if (data in self.carrier_group_1 == True and data in self.carrier_group_2 == True and data in self.carrier_group_3 == True):
+                c.close()
+                self.first_run = False
+            if (data in self.carrier_group_1 == False):
+                self.carrier_group_1.append(data)
+            elif (data in self.carrier_group_2 == False):
+                self.carrier_group_2.append(data)
+            elif (data in self.carrier_group_3 == False):
+                self.carrier_group_3.append(data)
+            else:
+                data = 0
+                print("initialization status: Failed..." )
+                c.send(data)
+                c.close()
+                self.first_run = False
 
     def connectToClient(self):
-        host = '192.168.0.2'#'127.0.0.1'
-        port = 5000
-
         s = socket.socket()
-        s.bind((host,port))
+        s.bind((self.host,self.port))
 
         s.listen(1)
         c, addr = s.accept()
@@ -23,22 +50,6 @@ class TCPSever(object):
             if not data:
                 print "Failed to receive data from PLC."
                 break
-            if (first_run == True):
-                if (data == 1):
-                    self.carrier_group_1.append(data)
-                    print("initialization status: Sucessfull")
-                elif(data == 2):
-                    self.carrier_group_2.append(data)
-                    print("initialization status: Sucessfull")
-                elif(data == 3):
-                    self.carrier_group_3.append(data)
-                    print("initialization status: Sucessfull")
-                else:
-                    data = 0
-                    print("initialization status: Failed..." )
-                    c.send(data
-                c.close()
-            else:
                 print "Received RFID Tag from PlC is: " + str(data)
                 if (data in self.carrier_group_1):
                     data = 1
@@ -49,11 +60,12 @@ class TCPSever(object):
                 else:
                     data = 0
                 print("Sending back: " + str(data))
-                c.send(data
-                c.close()
+                c.send(data)
+            #c.close()
 
 
 
 if __name__ == '__main__':
     server = TCPSever()
+    server.initCarriers()
     server.connectToClient()
