@@ -1,71 +1,79 @@
-#!python2
+# Echo server program
+
+#!/usr/bin/env python3
+
 import socket
+import time
+from random import randint
 
-class TCPSever(object):
-    def __init__(self):
-        self.carrier_group_1 = []
-        self.carrier_group_2 = []
-        self.carrier_group_3 = []
-        self.first_run = True
-        self.host = '172.20.40.46'#'127.0.0.1'
-        self.port = 5000
+HOST = '172.20.40.46'                 # Symbolic name meaning all available interfaces
+PORT = 65432              # Arbitrary non-privileged port
 
-    def initCarriers(self):
-        s = socket.socket()
-        s.bind((self.host,self.port))
+blue = []
+green = []
+black = []
 
-        s.listen(1)
-        c, addr = s.accept()
-        print "Successfully established connection from: " + str(addr)
-        while (first_run == True):
-            data = c.recv(1024)
-            if not data:
-                print "Failed to receive data from PLC."
-                break
-            if (data in self.carrier_group_1 == True and data in self.carrier_group_2 == True and data in self.carrier_group_3 == True):
-                c.close()
-                self.first_run = False
-            if (data in self.carrier_group_1 == False):
-                self.carrier_group_1.append(data)
-            elif (data in self.carrier_group_2 == False):
-                self.carrier_group_2.append(data)
-            elif (data in self.carrier_group_3 == False):
-                self.carrier_group_3.append(data)
-            else:
-                data = 0
-                print("initialization status: Failed..." )
-                c.send(data)
-                c.close()
-                self.first_run = False
-
-    def connectToClient(self):
-        s = socket.socket()
-        s.bind((self.host,self.port))
-
-        s.listen(1)
-        c, addr = s.accept()
-        print "Successfully established connection from: " + str(addr)
+# next = 1
+# Create a socket with IPv4 and TCP
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    s.bind((HOST,PORT))
+    s.listen(1)
+    print('Waiting for client...')
+    conn, addr = s.accept() # accept blocks and waits for an incoming connection
+    with conn:
+        print('Connected by: ', addr)
+        start = time.time()
         while True:
-            data = c.recv(1024)
-            if not data:
-                print "Failed to receive data from PLC."
+            now = time.time()
+            if (now - start) >= 50000:
+                print('Connection timed out...')
                 break
-                print "Received RFID Tag from PlC is: " + str(data)
-                if (data in self.carrier_group_1):
-                    data = 1
-                elif(data == data in self.carrier_group_2):
-                    data = 2
-                elif(data in self.carrier_group_3):
-                    data = 3
-                else:
-                    data = 0
-                print("Sending back: " + str(data))
-                c.send(data)
-            #c.close()
+            data = conn.recv(1024)
+            if not data:
+                #print('No data')
+                continue
 
+            # Check if the carrier has a product
+            if data in blue:
+                blue.remove(data)
+                print('Blue product complete with ID: ', data)
+            elif data in green:
+                green.remove(data)
+                print('Green product complete with ID: ', data)
+            elif data in black:
+                black.remove(data)
+                print('Black product complete with ID: ', data)
 
+            # Mixed production, two products
+            # Check which product to make next
+            next = randint(1,3)
 
-if __name__ == '__main__':
-    server = TCPSever()
-    server.initCarriers()
-    server.connectToClient()
+            if next is 1:
+                # Blue products
+                blue.append(data)
+                # print('Blue: ', blue)
+                print('Assigning Blue product to ID: ', data)
+                print(' ')
+                command = b'1'
+            elif next is 2:
+                # Green products
+                green.append(data)
+                # print('Green: ', green)
+                print('Assigning Green product to ID: ', data)
+                print(' ')
+                command = b'5'
+            elif next is 3:
+                # Black products
+                black.append(data)
+                # print('Black: ', black)
+                print('Assigning Black product to ID: ', data)
+                print(' ')
+                command = b'3'
+                # if next = 2:
+                #     # Reset counter
+                #     next = 0
+
+            conn.send(command)
+            # print('Sent: ', command)
+            start = time.time()
+            # next = next + 1
